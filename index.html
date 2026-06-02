@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>香港錢幣教學系統 - 2分鐘智慧提示瘋狂挑戰賽</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --panel-bg: rgba(255, 255, 255, 0.9);
+            --shadow-sm: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 10px 30px rgba(0,0,0,0.08);
+            --primary: #4a6fa5;
+            --primary-dark: #3b5984;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-gradient);
+            margin: 0; padding: 0;
+            user-select: none; overflow: hidden;
+            width: 100vw; height: 100vh;
+            color: #333;
+            touch-action: none;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 24px;
+            box-shadow: var(--shadow-md);
+        }
+
+        #setup-screen {
+            text-align: center; padding: 40px;
+            max-width: 650px; width: 85%;
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); z-index: 100;
+        }
+
+        button {
+            font-size: 22px; padding: 16px 36px; margin: 12px;
+            cursor: pointer; border: none; border-radius: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        #btn-advanced { background: linear-gradient(135deg, #ff9f43 0%, #ff5252 100%); box-shadow: 0 4px 15px rgba(255, 159, 67, 0.4); }
+
+        #game-container { display: none; flex-direction: column; width: 100%; height: 100%; position: relative; }
+        
+        #scoreboard {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            padding: 10px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); z-index: 10;
+            height: 75px; box-sizing: border-box;
+        }
+        .score-box { font-size: 14px; font-weight: 600; padding: 6px 14px; border-radius: 10px; line-height: 1.4; }
+        #p1-round-box { background: #edf2f7; color: #2b6cb0; border-left: 4px solid #2b6cb0; }
+        #p2-round-box { background: #fef3c7; color: #d97706; border-right: 4px solid #d97706; }
+        
+        #timer-banner {
+            font-size: 24px; font-weight: 800; color: #e53e3e;
+            background: #ffefee; padding: 6px 24px; border-radius: 20px;
+            border: 1px solid #fecaca; min-width: 120px; text-align: center;
+        }
+
+        #question-layer {
+            position: absolute;
+            top: 85px; left: 0; width: 100%;
+            display: flex; justify-content: space-between;
+            pointer-events: none; z-index: 50;
+            box-sizing: border-box; padding: 0 20px;
+        }
+        .question-card {
+            width: 45%; padding: 12px 15px; min-height: 110px;
+            background: rgba(255, 255, 255, 0.95); border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06); border: 2px solid #e2e8f0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; box-sizing: border-box; transition: all 0.3s ease;
+        }
+        .q-sub { font-size: 14px; font-weight: 700; color: #718096; margin-bottom: 4px; }
+        .q-main { font-size: 24px; font-weight: 800; color: #1e3a8a; }
+        .q-main span { color: #dc2626; font-size: 32px; font-weight: 900; }
+
+        /* 💡 智慧提示圖示樣式 */
+        .hint-container {
+            display: flex; gap: 8px; margin-top: 6px; justify-content: center; align-items: center;
+            animation: bounceIn 0.5s ease-out;
+        }
+        .hint-coin {
+            width: 30px; height: 30px; border-radius: 50%; border: 1px solid #bdc3c7;
+            font-weight: 900; font-size: 13px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .hint-scallop { border-radius: 8px; border: 2px dashed #95a5a6; } /* 花邊形狀提示 */
+
+        #canvas-container { flex: 1; position: relative; background: transparent; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        #bgm-control {
+            position: fixed; bottom: 15px; left: 15px; z-index: 999;
+            background: rgba(255,255,255,0.9); border: 2px solid #cbd5e1;
+            border-radius: 30px; padding: 5px 15px; font-size: 14px; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: var(--shadow-sm);
+        }
+
+        #report-card {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 30px; text-align: center; z-index: 200; width: 85%; max-width: 750px;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .report-table { width: 100%; border-collapse: collapse; font-size: 18px; margin: 20px 0; background: rgba(255,255,255,0.6); border-radius: 12px; overflow: hidden; }
+        .report-table th, .report-table td { padding: 12px; text-align: center; }
+        .report-table th { background-color: rgba(74, 111, 165, 0.15); color: var(--primary-dark); font-weight: 700; }
+        .report-table td { border-top: 1px solid rgba(0,0,0,0.05); font-weight: 600; }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            70% { transform: scale(0.9); opacity: 0.9; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bgm-control" onclick="toggleBGM()">🔇 背景音樂：關閉</div>
+
+    <div id="setup-screen" class="glass-panel">
+        <h1 style="font-size: 34px; color: #1a202c; margin-bottom: 5px;">香港錢幣 - 2分鐘智慧輔助挑戰賽</h1>
+        <p style="color: #e53e3e; font-size: 18px; font-weight: bold; margin-bottom: 25px;">⏱️ 全場 2 分鐘無限輪流 | 💡 連續錯 2 次會自動開啟圖形小提示！</p>
+        <button onclick="setDifficulty('simple')">簡單模式 (常規辨認)</button>
+        <button id="btn-advanced" onclick="setDifficulty('advanced')">進階模式 (兩筆運算)</button>
+    </div>
+
+    <div id="game-container">
+        <div id="scoreboard">
+            <div id="p1-round-box" class="score-box">左邊學生</div>
+            <div id="timer-banner">⏱️ 02:00</div>
+            <div id="p2-round-box" class="score-box">右邊學生</div>
+        </div>
+        
+        <div id="question-layer">
+            <div id="p1-qcard" class="question-card">正在出題...</div>
+            <div id="p2-qcard" class="question-card">正在出題...</div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+    </div>
+
+    <div id="report-card" class="glass-panel">
+        <h1 style="color: #27ae60; font-size: 36px; margin: 0; font-weight:800;">🏆 挑戰賽最終成果 🏆</h1>
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>學生編號</th>
+                    <th>總答對題數</th>
+                    <th>學習防禦塔</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+        </table>
+        <button onclick="location.reload()" style="font-size: 20px; padding: 12px 40px;">重新開始一局</button>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let difficulty = 'simple'; 
+let gameState = 'setup';
+let globalTime = 0;
+
+let totalTimeLeft = 120; 
+let countdownInterval = null;
+
+let currentGroupIdx = 0; 
+//wrongCount 用於記錄該學生【當前這一題】連續錯了幾次
+let students = [
+    { name: "學生 1", id: 1, totalScore: 0, currentGroupProgress: 0, wrongCount: 0 },
+    { name: "學生 2", id: 2, totalScore: 0, currentGroupProgress: 0, wrongCount: 0 },
+    { name: "學生 3", id: 3, totalScore: 0, currentGroupProgress: 0, wrongCount: 0 },
+    { name: "學生 4", id: 4, totalScore: 0, currentGroupProgress: 0, wrongCount: 0 },
+    { name: "學生 5", id: 5, totalScore: 0, currentGroupProgress: 0, wrongCount: 0 },
+    { name: "學生 6", id: 6, totalScore: 0, currentGroupProgress: 0, wrongCount: 0 }
+];
+
+let p1 = { side: 'left',  domId: 'p1-qcard', studentRef: null, coinPool: [], registerSlot: {}, selectedItems: [], inputNumber: '', targetPrice: 0, targetCoinValue: 0, paidCoins: [], numPadButtons: [], audienceCheckMode: false, checkButtons: [] };
+let p2 = { side: 'right', domId: 'p2-qcard', studentRef: null, coinPool: [], registerSlot: {}, selectedItems: [], inputNumber: '', targetPrice: 0, targetCoinValue: 0, paidCoins: [], numPadButtons: [], audienceCheckMode: false, checkButtons: [] };
+
+let feedback = { 
+    left: { type: null, timer: 0, text: '' }, 
+    right: { type: null, timer: 0, text: '' } 
+};
+const positiveTexts = ["太棒了！", "好厲害！", "完全正確！", "手速驚人！"];
+const negativeTexts = ["再試一次！", "差一點點！", "看清楚金額哦！"];
+
+let particles = [];
+
+const itemPool = [
+    { name: '糖果', price: 1, icon: '🍬' }, { name: '膠帶', price: 2, icon: '📼' },
+    { name: '飯糰', price: 5, icon: '🍙' }, { name: '冰淇淋', price: 3, icon: '🍦' },
+    { name: '飲料', price: 4, icon: '🧃' }, { name: '薯片', price: 6, icon: '🥔' }
+];
+
+// 🎨 香港硬幣精準樣式數據 []
+const coinSpecs = {
+    1: { value: 1, radius: 36, outerColor: '#bec9d2', innerColor: '#dbe3e9', label: '1', textColor: '#2c3e50', styleStr: 'background:#bec9d2;color:#2c3e50;' }, 
+    2: { value: 2, radius: 38, outerColor: '#bec9d2', innerColor: '#dbe3e9', label: '2', textColor: '#2c3e50', scallop: true, styleStr: 'background:#bec9d2;color:#2c3e50;border-radius:6px;' }, 
+    5: { value: 5, radius: 44, outerColor: '#95a5a6', innerColor: '#bdc3c7', label: '5', textColor: '#2c3e50', styleStr: 'background:#95a5a6;color:#2c3e50;' }, 
+    10: { value: 10, radius: 42, outerColor: '#bec9d2', innerColor: '#dfb043', label: '10', textColor: '#513d11', isBiColor: true, styleStr: 'background:radial-gradient(circle, #dfb043 60%, #bec9d2 61%);color:#513d11;' } 
+};
+
+let audioCtx = null;
+let bgmNode = null;
+let bgmGain = null;
+let isBGMPlaying = false;
+
+function initAudioSafe() {
+    if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); }
+}
+
+function startBGM() {
+    initAudioSafe(); if (!audioCtx || isBGMPlaying) return;
+    try {
+        bgmGain = audioCtx.createGain(); bgmGain.gain.setValueAtTime(0.04, audioCtx.currentTime); bgmGain.connect(audioCtx.destination);
+        let bufferSize = audioCtx.sampleRate * 2; let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate); let data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            let t = i / audioCtx.sampleRate; let notes = [261.63, 293.66, 329.63, 392.00, 440.00]; let note = notes[Math.floor(t * 2) % notes.length];
+            data[i] = Math.sin(2 * Math.PI * note * t) * 0.1 * Math.exp(-2 * (t % 0.5));
+        }
+        bgmNode = audioCtx.createBufferSource(); bgmNode.buffer = buffer; bgmNode.loop = true; bgmNode.connect(bgmGain); bgmNode.start();
+        isBGMPlaying = true; document.getElementById('bgm-control').innerText = '🎵 背景音樂：播放中';
+    } catch(e){}
+}
+
+function toggleBGM() {
+    initAudioSafe();
+    if (!isBGMPlaying) { startBGM(); } 
+    else {
+        if (bgmNode) { try { bgmNode.stop(); bgmNode.disconnect(); }catch(e){} bgmNode = null; }
+        isBGMPlaying = false; document.getElementById('bgm-control').innerText = '🔇 背景音樂：關閉';
+    }
+}
+
+function playSound(type) {
+    initAudioSafe(); if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1046.5, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'wrong') {
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(180, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(130, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.25, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+        }
+    } catch(e){}
+}
+
+function createConfetti(x, y) {
+    for (let i = 0; i < 20; i++) {
+        particles.push({
+            x: x, y: y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.7) * 10 - 2,
+            size: Math.random() * 5 + 3, color: `hsla(${Math.random() * 360}, 80%, 60%, 0.9)`,
+            gravity: 0.3, alpha: 1, life: Math.random() * 20 + 20
+        });
+    }
+}
+
+function setDifficulty(mode) {
+    difficulty = mode; try { startBGM(); } catch(e){}
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('game-container').style.display = 'flex';
+    gameState = 'playing'; resizeCanvas(); loadGroup(0); startTimer(); gameLoop();
+}
+
+function loadGroup(groupIdx) {
+    currentGroupIdx = groupIdx % 3;
+    p1.studentRef = students[currentGroupIdx * 2];
+    p2.studentRef = students[currentGroupIdx * 2 + 1];
+    p1.studentRef.currentGroupProgress = 0;
+    p2.studentRef.currentGroupProgress = 0;
+    generateQuestion(p1); generateQuestion(p2); updateScoreboardText();
+}
+
+function startTimer() {
+    if(countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+        totalTimeLeft--;
+        if (totalTimeLeft <= 0) { totalTimeLeft = 0; clearInterval(countdownInterval); endGameForce(); }
+        let mins = Math.floor(totalTimeLeft / 60).toString().padStart(2, '0');
+        let secs = (totalTimeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer-banner').innerText = `⏱️ ${mins}:${secs}`;
+    }, 1000);
+}
+
+function updateScoreboardText() {
+    if(!p1.studentRef || !p2.studentRef) return;
+    document.getElementById('p1-round-box').innerHTML = `第 ${currentGroupIdx+1} 組左邊<br><b style="font-size:16px;color:#2b6cb0;">${p1.studentRef.name}</b> (總得分: <b>${p1.studentRef.totalScore}</b> 題)`;
+    document.getElementById('p2-round-box').innerHTML = `第 ${currentGroupIdx+1} 組右邊<br><b style="font-size:16px;color:#d97706;">${p2.studentRef.name}</b> (總得分: <b>${p2.studentRef.totalScore}</b> 題)`;
+}
+
+function resizeCanvas() {
+    const container = document.getElementById('canvas-container');
+    canvas.width = container.clientWidth || window.innerWidth;
+    canvas.height = container.clientHeight || (window.innerHeight - 85);
+}
+
+// 💡 動態渲染題目與圖形提示
+function renderHTMLQuestion(player) {
+    const el = document.getElementById(player.domId);
+    let nextNotice = player.studentRef.currentGroupProgress >= 2 ? `<div style="font-size:11px;color:#27ae60;margin-top:2px;">🔥 已滿2題！等隊友完賽換組</div>` : '';
+    
+    // 檢查連續錯是否滿2次
+    let hintHtml = '';
+    if (player.studentRef.wrongCount >= 2) {
+        if (difficulty === 'simple') {
+            let spec = coinSpecs[player.targetCoinValue];
+            let extraClass = spec.scallop ? 'hint-scallop' : '';
+            hintHtml = `
+                <div class="hint-container">
+                    <span style="font-size:12px;color:#718096;font-weight:bold;">💡 提示：找外觀像這樣的硬幣</span>
+                    <div class="hint-coin ${extraClass}" style="${spec.styleStr}">${spec.label}</div>
+                </div>
+            `;
+        } else {
+            // 進階模式提示：將挑選出的兩件物品價格轉為對應的硬幣視覺
+            let spec1 = coinSpecs[player.selectedItems[0].price];
+            let spec2 = coinSpecs[player.selectedItems[1].price];
+            hintHtml = `
+                <div class="hint-container">
+                    <span style="font-size:12px;color:#718096;font-weight:bold;">💡 提示：你需要放入這兩枚</span>
+                    <div class="hint-coin ${spec1.scallop?'hint-scallop':''}" style="${spec1.styleStr}">${spec1.label}</div>
+                    <span style="font-weight:bold;color:#718096;">+</span>
+                    <div class="hint-coin ${spec2.scallop?'hint-scallop':''}" style="${spec2.styleStr}">${spec2.label}</div>
+                </div>
+            `;
+        }
+    }
+
+    if (difficulty === 'simple') {
+        el.innerHTML = `
+            <div class="q-sub">🎯 辨認貨幣 (${player.studentRef.name}) []</div>
+            <div class="q-main">請選出並放入：<span>$${player.targetCoinValue}元</span></div>
+            ${hintHtml}${nextNotice}
+        `;
+    } else {
+        let itemsHtml = player.selectedItems.map(item => `
+            <span style="font-size:20px;">${item.icon}<i style="font-style:normal;font-size:14px;color:#e53e3e;">$${item.price}</i></span>
+        `).join('+');
+        el.innerHTML = `
+            <div class="q-sub">🛒 組合計算 (${player.studentRef.name}) []</div>
+            <div class="q-main" style="font-size:16px;">${itemsHtml} = <span>$${player.targetPrice}元</span></div>
+            ${hintHtml}${nextNotice}
+        `;
+    }
+}
+
+function setupLayout(player, startX, endX) {
+    const w = endX - startX; const h = canvas.height;
+    player.registerSlot = { x: startX + w * 0.5, y: 240, width: 140, height: 75 };
+    
+    let currentPoolValues = [1, 2, 5, 10];
+    if (difficulty === 'simple') {
+        let base = [1, 2, 5, 10]; currentPoolValues = base.sort(() => Math.random() - 0.5);
+    }
+    const count = currentPoolValues.length;
+    player.coinPool = currentPoolValues.map((val, idx) => {
+        let poolX = startX + (w * 0.15) + idx * (w * 0.70 / (count - 1 || 1)); let poolY = h - 80;
+        return {
+            value: val, x: poolX, y: poolY, spec: coinSpecs[val],
+            originX: poolX, originY: poolY, targetX: poolX, targetY: poolY,
+            touchId: null, pulseOffset: Math.random() * Math.PI
+        };
+    });
+
+    player.numPadButtons = [];
+    if (difficulty === 'advanced') {
+        const btnLabels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '清除', '確認'];
+        const cols = 4; const btnW = 50, btnH = 36;
+        const startPadX = startX + w * 0.5 - (cols * (btnW + 6)) / 2; const startPadY = 375;
+        btnLabels.forEach((label, idx) => {
+            let r = Math.floor(idx / cols); let c = idx % cols;
+            player.numPadButtons.push({ label: label, x: startPadX + c * (btnW + 8), y: startPadY + r * (btnH + 8), w: btnW, h: btnH });
+        });
+        player.checkButtons = [
+            { label: '⭕ 對', type: 'yes', x: startX + w*0.1, y: 395, w: w*0.35, h: 75 },
+            { label: '❌ 錯', type: 'no', x: startX + w*0.55, y: 395, w: w*0.35, h: 75 }
+        ];
+    }
+    renderHTMLQuestion(player);
+}
+
+function generateQuestion(player) {
+    player.inputNumber = ''; player.paidCoins = []; player.selectedItems = []; player.audienceCheckMode = false;
+    if (difficulty === 'simple') {
+        const normalValues = [1, 2, 5, 10];
+        player.targetCoinValue = normalValues[Math.floor(Math.random() * normalValues.length)];
+    } else {
+        // 進階模式下確保挑選出的兩件商品價格正好各自對應 1,2,5,10 硬幣（方便出圖形提示）
+        let validPrices = [1, 2, 5, 10];
+        let subPool = itemPool.filter(i => validPrices.includes(i.price));
+        let item1 = subPool[Math.floor(Math.random() * subPool.length)];
+        let item2 = subPool[Math.floor(Math.random() * subPool.length)];
+        player.selectedItems = [item1, item2];
+        player.targetPrice = item1.price + item2.price;
+    }
+    setupLayout(player, player.side === 'left' ? 0 : canvas.width/2, player.side === 'left' ? canvas.width/2 : canvas.width);
+}
+
+function checkGroupProgression() {
+    if (p1.studentRef.currentGroupProgress >= 2 && p2.studentRef.currentGroupProgress >= 2) {
+        createConfetti(canvas.width*0.25, canvas.height*0.5); createConfetti(canvas.width*0.75, canvas.height*0.5);
+        document.getElementById('p1-qcard').innerHTML = `<div class="q-main" style="color:#27ae60;font-size:20px;">🎉 完美達標！<br><span style="font-size:14px;color:#718096;">換下一組學生...</span></div>`;
+        document.getElementById('p2-qcard').innerHTML = `<div class="q-main" style="color:#27ae60;font-size:20px;">🎉 完美達標！<br><span style="font-size:14px;color:#718096;">換下一組學生...</span></div>`;
+        setTimeout(() => { loadGroup(currentGroupIdx + 1); }, 1000);
+    }
+}
+
+function drawRealisticCoin(coin) {
+    const { x, y, spec, touchId, pulseOffset } = coin;
+    ctx.save(); let animY = y;
+    if (touchId === null && gameState === 'playing') animY += Math.sin(globalTime * 0.05 + pulseOffset) * 3;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.15)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 4;
+    ctx.beginPath();
+    if (spec.scallop) {
+        for (let i = 0; i < 24; i++) {
+            let angle = (i * Math.PI) / 12; let r = i % 2 === 0 ? spec.radius : spec.radius - 3;
+            ctx.lineTo(x + Math.cos(angle) * r, animY + Math.sin(angle) * r);
+        }
+    } else { ctx.arc(x, animY, spec.radius, 0, Math.PI * 2); }
+    ctx.fillStyle = spec.outerColor; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.stroke();
+
+    if (spec.isBiColor) {
+        ctx.beginPath(); ctx.arc(x, animY, spec.radius * 0.65, 0, Math.PI * 2); ctx.fillStyle = spec.innerColor; ctx.fill(); ctx.stroke();
+    } else {
+        ctx.beginPath(); ctx.arc(x, animY, spec.radius * 0.82, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    ctx.fillStyle = spec.textColor; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    ctx.font = 'bold 20px "Arial Black", Gadget, sans-serif'; ctx.fillText(spec.label, x, animY);
+    ctx.restore();
+}
+
+function drawPlayerArea(player, startX, endX) {
+    const w = endX - startX;
+    if(player.side === 'left') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(endX, 0); ctx.lineTo(endX, canvas.height); ctx.stroke();
+    }
+    let slot = player.registerSlot;
+    ctx.save(); ctx.fillStyle = '#374151'; ctx.beginPath(); ctx.roundRect(slot.x - slot.width/2, slot.y, slot.width, slot.height, 14); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.fillText('📥 收銀機處', slot.x, slot.y + 44); ctx.restore();
+
+    if (difficulty === 'advanced') {
+        if (player.paidCoins.length > 0) {
+            ctx.save(); ctx.fillStyle = '#fef3c7'; ctx.beginPath(); ctx.roundRect(slot.x - w*0.4, slot.y + slot.height + 6, w*0.8, 30, 6); ctx.fill();
+            ctx.fillStyle = '#92400e'; ctx.font = '600 14px Arial'; ctx.textAlign = 'center';
+            let coinText = (player.paidCoins.length === 1) ? `已投：$${player.paidCoins[0]}` : `已投：$${player.paidCoins[0]} + $${player.paidCoins[1]} = ${player.paidCoins[0] + player.paidCoins[1]}元`;
+            ctx.fillText(coinText, slot.x, slot.y + slot.height + 26); ctx.restore();
+        }
+        if (player.audienceCheckMode) {
+            ctx.save(); ctx.fillStyle = 'rgba(255, 247, 237, 0.95)'; ctx.beginPath(); ctx.roundRect(startX + 15, 280, w - 30, 220, 12); ctx.fill();
+            ctx.fillStyle = '#c2410c'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.fillText('📢 檢查員請判斷：', startX + w*0.5, 315);
+            ctx.fillStyle = '#2d3748'; ctx.font = '600 16px Arial'; ctx.fillText('付款完全正確嗎？', startX + w*0.5, 345);
+            player.checkButtons.forEach(btn => {
+                ctx.fillStyle = btn.type === 'yes' ? '#2ecc71' : '#ee5253'; ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 8); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
+            });
+            ctx.restore();
+        } else {
+            ctx.fillStyle = '#4a5568'; ctx.font = '600 15px Arial'; ctx.textAlign = 'center'; ctx.fillText('👉 請輸入支付總金額：', startX + w * 0.5, 355);
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(startX + w * 0.5 - 55, 295, 110, 32, 6); ctx.fill();
+            ctx.fillStyle = '#e53e3e'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center'; ctx.fillText(player.inputNumber + (player.inputNumber===''?'':'元'), startX + w * 0.5, 318);
+            player.numPadButtons.forEach(btn => {
+                ctx.fillStyle = (btn.label === '確認') ? '#2ecc71' : (btn.label === '清除' ? '#ee5253' : '#edf2f7'); ctx.beginPath(); ctx.roundRect(btn.x, btn.y, btn.w, btn.h, 6); ctx.fill();
+                ctx.fillStyle = (btn.label === '確認' || btn.label === '清除') ? '#fff' : '#2d3748'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(btn.label, btn.x + btn.w/2, btn.y + btn.h/2);
+            });
+        }
+    }
+
+    player.coinPool.forEach(coin => {
+        if (coin.touchId === null) { coin.x += (coin.targetX - coin.x) * 0.16; coin.y += (coin.targetY - coin.y) * 0.16; }
+        drawRealisticCoin(coin);
+    });
+
+    const fb = feedback[player.side];
+    if (fb.timer > 0) {
+        ctx.save(); const cX = startX + w/2; const cY = canvas.height / 2 + 30; ctx.globalAlpha = Math.min(1, fb.timer / 10);
+        if (fb.type === 'correct') {
+            ctx.fillStyle = 'rgba(46, 204, 113, 0.1)'; ctx.fillRect(startX, 0, w, canvas.height);
+            ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = 14; ctx.beginPath(); ctx.moveTo(cX - 20, cY); ctx.lineTo(cX - 5, cY + 15); ctx.lineTo(cX + 30, cY - 20); ctx.stroke();
+            ctx.fillStyle = '#27ae60'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'; ctx.fillText(fb.text, cX, cY + 60);
+        } else {
+            ctx.fillStyle = 'rgba(238, 82, 83, 0.1)'; ctx.fillRect(startX, 0, w, canvas.height);
+            ctx.strokeStyle = '#ee5253'; ctx.lineWidth = 14; ctx.beginPath(); ctx.moveTo(cX - 15, cY - 15); ctx.lineTo(cX + 15, cY + 15); ctx.moveTo(cX + 15, cY - 15); ctx.lineTo(cX - 15, cY + 15); ctx.stroke();
+            ctx.fillStyle = '#c0392b'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'; ctx.fillText(fb.text, cX, cY + 60);
+        }
+        ctx.restore(); fb.timer--;
+    }
+}
+
+function updateAndDrawParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.life--;
+        ctx.save(); ctx.globalAlpha = Math.max(0, p.life / 25); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.restore();
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+}
+
+function gameLoop() {
+    globalTime++; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPlayerArea(p1, 0, canvas.width / 2); drawPlayerArea(p2, canvas.width / 2, canvas.width);
+    updateAndDrawParticles(); requestAnimationFrame(gameLoop);
+}
+
+function getTouchPos(clientX, clientY) { const rect = canvas.getBoundingClientRect(); return { x: clientX - rect.left, y: clientY - rect.top }; }
+
+function handleTouchStart(e) {
+    initAudioSafe(); if(gameState !== 'playing') return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i]; const pos = getTouchPos(touch.clientX, touch.clientY);
+        let player = pos.x < canvas.width / 2 ? p1 : p2;
+        if (difficulty === 'advanced' && player.audienceCheckMode) {
+            player.checkButtons.forEach(btn => {
+                if (pos.x >= btn.x && pos.x <= btn.x + btn.w && pos.y >= btn.y && pos.y <= btn.y + btn.h) processAudienceDecision(player, btn.type);
+            });
+            continue;
+        }
+        player.coinPool.forEach(coin => {
+            let isHit = Math.hypot(pos.x - coin.x, pos.y - coin.y) < 45;
+            if (isHit && coin.touchId === null) coin.touchId = touch.identifier;
+        });
+        if (difficulty === 'advanced') {
+            player.numPadButtons.forEach(btn => {
+                if (pos.x >= btn.x && pos.x <= btn.x + btn.w && pos.y >= btn.y && pos.y <= btn.y + btn.h) {
+                    if (btn.label === '清除') player.inputNumber = '';
+                    else if (btn.label === '確認') {
+                        if (player.inputNumber !== '' && player.paidCoins.length === 2) player.audienceCheckMode = true;
+                        else { processWrong(player); }
+                    } else { if(player.inputNumber.length < 3) player.inputNumber += btn.label; }
+                }
+            });
+        }
+    }
+}
+
+function handleTouchMove(e) {
+    if(gameState !== 'playing') return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i]; const pos = getTouchPos(touch.clientX, touch.clientY);
+        [p1, p2].forEach(player => {
+            if (player.audienceCheckMode) return;
+            player.coinPool.forEach(coin => {
+                if (coin.touchId === touch.identifier) {
+                    if (player.side === 'left' && pos.x > canvas.width / 2 - 15) return;
+                    if (player.side === 'right' && pos.x < canvas.width / 2 + 15) return;
+                    coin.x = pos.x; coin.y = pos.y;
+                }
+            });
+        });
+    }
+}
+
+function handleTouchEnd(e) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        [p1, p2].forEach(player => {
+            player.coinPool.forEach(coin => { if (coin.touchId === touch.identifier) { coin.touchId = null; checkCoinDrop(player, coin); } });
+        });
+    }
+}
+
+let activeMouseCoin = null;
+function handleMouseDown(e) {
+    initAudioSafe(); if(gameState !== 'playing') return;
+    const pos = getTouchPos(e.clientX, e.clientY);
+    let player = pos.x < canvas.width / 2 ? p1 : p2;
+    if (difficulty === 'advanced' && player.audienceCheckMode) {
+        player.checkButtons.forEach(btn => {
+            if (pos.x >= btn.x && pos.x <= btn.x + btn.w && pos.y >= btn.y && pos.y <= btn.y + btn.h) processAudienceDecision(player, btn.type);
+        });
+        return;
+    }
+    player.coinPool.forEach(coin => {
+        let isHit = Math.hypot(pos.x - coin.x, pos.y - coin.y) < 45;
+        if (isHit && activeMouseCoin === null && coin.touchId === null) { coin.touchId = 'mouse'; activeMouseCoin = coin; }
+    });
+    if (difficulty === 'advanced') {
+        player.numPadButtons.forEach(btn => {
+            if (pos.x >= btn.x && pos.x <= btn.x + btn.w && pos.y >= btn.y && pos.y <= btn.y + btn.h) {
+                if (btn.label === '清除') player.inputNumber = '';
+                else if (btn.label === '確認') {
+                    if (player.inputNumber !== '' && player.paidCoins.length === 2) player.audienceCheckMode = true;
+                    else { processWrong(player); }
+                } else { if(player.inputNumber.length < 3) player.inputNumber += btn.label; }
+            }
+        });
+    }
+}
+
+function handleMouseMove(e) {
+    if(gameState !== 'playing' || !activeMouseCoin) return;
+    const pos = getTouchPos(e.clientX, e.clientY);
+    let player = activeMouseCoin.x < canvas.width / 2 ? p1 : p2;
+    if (player.side === 'left' && pos.x > canvas.width / 2 - 15) return;
+    if (player.side === 'right' && pos.x < canvas.width / 2 + 15) return;
+    activeMouseCoin.x = pos.x; activeMouseCoin.y = pos.y;
+}
+
+function handleMouseUp(e) {
+    if (activeMouseCoin) {
+        activeMouseCoin.touchId = null; let player = activeMouseCoin.x < canvas.width / 2 ? p1 : p2;
+        checkCoinDrop(player, activeMouseCoin); activeMouseCoin = null;
+    }
+}
+
+function checkCoinDrop(player, coin) {
+    let slot = player.registerSlot;
+    if (coin.x > slot.x - slot.width/2 - 25 && coin.x < slot.x + slot.width/2 + 25 && coin.y > slot.y - 25 && coin.y < slot.y + slot.height + 25) {
+        if (difficulty === 'simple') {
+            if (coin.value === player.targetCoinValue) { createConfetti(coin.x, coin.y); processCorrect(player); } 
+            else { processWrong(player); }
+        } else {
+            if(player.paidCoins.length < 2 && !player.audienceCheckMode) { player.paidCoins.push(coin.value); playSound('correct'); }
+        }
+    }
+}
+
+function processAudienceDecision(player, decision) {
+    let typedPrice = parseInt(player.inputNumber);
+    let totalPaidSum = player.paidCoins.reduce((a, b) => a + b, 0);
+    let isActuallyCorrect = (typedPrice === player.targetPrice && totalPaidSum === player.targetPrice);
+    if (decision === 'yes') {
+        if (isActuallyCorrect) { createConfetti(player.registerSlot.x, player.registerSlot.y); processCorrect(player); } 
+        else { processWrong(player); player.inputNumber = ''; player.paidCoins = []; player.audienceCheckMode = false; }
+    } else {
+        if (!isActuallyCorrect) { 
+            playSound('correct'); createConfetti(player.registerSlot.x, player.registerSlot.y); 
+            feedback[player.side] = { type: 'wrong', timer: 45, text: '好眼力！抓到錯誤！' }; 
+            player.studentRef.wrongCount = 0; // 成功抓錯也算正解，重設錯題數
+            player.inputNumber = ''; player.paidCoins = []; player.audienceCheckMode = false;
+            player.studentRef.totalScore++; player.studentRef.currentGroupProgress++;
+            updateScoreboardText(); generateQuestion(player); checkGroupProgression();
+        } else { player.audienceCheckMode = false; }
+    }
+}
+
+function triggerTextFeedback(player, type) {
+    if (type === 'correct') {
+        const txt = positiveTexts[Math.floor(Math.random() * positiveTexts.length)];
+        feedback[player.side] = { type: 'correct', timer: 45, text: txt };
+    } else {
+        const txt = negativeTexts[Math.floor(Math.random() * negativeTexts.length)];
+        feedback[player.side] = { type: 'wrong', timer: 45, text: txt };
+    }
+}
+
+function processCorrect(player) {
+    player.studentRef.totalScore++;
+    player.studentRef.currentGroupProgress++;
+    player.studentRef.wrongCount = 0; // 答對了，重設連續錯誤計數
+    playSound('correct'); triggerTextFeedback(player, 'correct');
+    updateScoreboardText(); generateQuestion(player); checkGroupProgression();
+}
+
+function processWrong(player) { 
+    player.studentRef.wrongCount++; // 連續答錯計數增加
+    playSound('wrong'); triggerTextFeedback(player, 'wrong');
+    renderHTMLQuestion(player); // 重新渲染題目面板，以便即時亮出圖形提示
+}
+
+function endGameForce() {
+    gameState = 'ended'; clearInterval(countdownInterval);
+    if (bgmNode) { try{ bgmNode.stop(); }catch(e){} }
+    document.getElementById('game-container').style.display = 'none';
+    
+    let tbody = document.getElementById('leaderboard-body'); tbody.innerHTML = '';
+    students.forEach((student) => {
+        let evaluation = student.totalScore >= 4 ? "🚀 搶分大師！" : (student.totalScore >= 2 ? "⭐ 表現優異" : "👍 繼續加油");
+        let row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="color:#1e3a8a; font-weight:bold;">${student.name}</td>
+            <td style="font-size:22px; color:#e53e3e; font-weight:bold;">${student.totalScore} 題</td>
+            <td style="font-weight:bold; color:#27ae60;">${evaluation}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    document.getElementById('report-card').style.display = 'block';
+}
+
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+canvas.addEventListener('mousedown', handleMouseDown);
+canvas.addEventListener('mousemove', handleMouseMove);
+window.addEventListener('mouseup', handleMouseUp);
+window.addEventListener('resize', resizeCanvas);
+</script>
+</body>
+</html>
